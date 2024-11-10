@@ -48,7 +48,7 @@ struct GameState
     int enemies_killed = 0;
 };
 
-enum AppStatus { RUNNING, TERMINATED };
+enum AppStatus { RUNNING, TERMINATED, PAUSED };
 
 // ————— CONSTANTS ————— //
 constexpr int WINDOW_WIDTH = 640 * 2,
@@ -75,12 +75,14 @@ constexpr char SPRITESHEET_FILEPATH[] = "assets/images/player1.png",
 MAP_TILESET_FILEPATH[] = "assets/images/world_tileset.png",
 ENEMY1_FILEPATH[] = "assets/images/enemy.png",
 BGM_FILEPATH[] = "assets/audio/dooblydoo.mp3",
-JUMP_SFX_FILEPATH[] = "assets/audio/bounce.wav";
+JUMP_SFX_FILEPATH[] = "assets/audio/bounce.wav",
+FONTSHEET_FILEPATH[] = "assets/fonts/font1.png";
 
 constexpr int NUMBER_OF_TEXTURES = 1;
 constexpr GLint LEVEL_OF_DETAIL = 0;
 constexpr GLint TEXTURE_BORDER = 0;
 
+constexpr int FONTBANK_SIZE = 16;
 unsigned int LEVEL_1_DATA[] =
 {
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
@@ -103,7 +105,7 @@ glm::mat4 g_view_matrix, g_projection_matrix;
 
 float g_previous_ticks = 0.0f,
 g_accumulator = 0.0f;
-
+GLuint g_font_texture_id;
 
 void initialise();
 void process_input();
@@ -138,6 +140,52 @@ GLuint load_texture(const char* filepath)
     return texture_id;
 }
 
+void draw_text(ShaderProgram* shader_program, GLuint font_texture_id, std::string text,
+    float font_size, float spacing, glm::vec3 position)
+{
+    // Scale the size of the fontbank in the UV-plane
+    // We will use this for spacing and positioning
+    float width = 1.0f / FONTBANK_SIZE;
+    float height = 1.0f / FONTBANK_SIZE;
+
+    // Instead of having a single pair of arrays, we'll have a series of pairs—one for
+    // each character. Don't forget to include <vector>!
+    std::vector<float> vertices;
+    std::vector<float> texture_coordinates;
+
+    // For every character...
+    for (int i = 0; i < text.size(); i++) {
+        // 1. Get their index in the spritesheet, as well as their offset (i.e. their
+        //    position relative to the whole sentence)
+        int spritesheet_index = (int)text[i];  // ascii value of character
+        float offset = (font_size + spacing) * i;
+
+        // 2. Using the spritesheet index, we can calculate our U- and V-coordinates
+        float u_coordinate = (float)(spritesheet_index % FONTBANK_SIZE) / FONTBANK_SIZE;
+        float v_coordinate = (float)(spritesheet_index / FONTBANK_SIZE) / FONTBANK_SIZE;
+
+        // 3. Inset the current pair in both vectors
+        vertices.insert(vertices.end(), {
+            offset + (-0.5f * font_size), 0.5f * font_size,
+            offset + (-0.5f * font_size), -0.5f * font_size,
+            offset + (0.5f * font_size), 0.5f * font_size,
+            offset + (0.5f * font_size), -0.5f * font_size,
+            offset + (0.5f * font_size), 0.5f * font_size,
+            offset + (-0.5f * font_size), -0.5f * font_size,
+            });
+
+        texture_coordinates.insert(texture_coordinates.end(), {
+            u_coordinate, v_coordinate,
+            u_coordinate, v_coordinate + height,
+            u_coordinate + width, v_coordinate,
+            u_coordinate + width, v_coordinate + height,
+            u_coordinate + width, v_coordinate,
+            u_coordinate, v_coordinate + height,
+            });
+    }
+}
+
+
 void initialise()
 {
     // ————— GENERAL ————— //
@@ -159,6 +207,7 @@ void initialise()
     glewInit();
 #endif
 
+    g_font_texture_id = load_texture(FONTSHEET_FILEPATH); 
     // ————— VIDEO SETUP ————— //
     glViewport(VIEWPORT_X, VIEWPORT_Y, VIEWPORT_WIDTH, VIEWPORT_HEIGHT);
 
@@ -246,7 +295,7 @@ void initialise()
     g_game_state.enemies[0].set_jumping_power(2.0f);
 
     //second enemy
-    g_game_state.enemies[1].set_position(glm::vec3(4.0f, 1.0f, 0.0f));
+    g_game_state.enemies[1].set_position(glm::vec3(5.0f, 1.0f, 0.0f));
     g_game_state.enemies[1].set_ai_type(JUMPER);
     g_game_state.enemies[1].set_ai_state(JUMPING);
     g_game_state.enemies[1].set_jumping_power(2.0f);
@@ -353,7 +402,7 @@ void update()
                     g_game_state.enemies[i].deactivate();
                     g_game_state.enemies_killed++;
                 }
-
+                
             }
 
         }
@@ -380,10 +429,14 @@ void render()
     g_game_state.player->render(&g_shader_program);
     g_game_state.map->render(&g_shader_program);
     for (int i = 0; i < ENEMY_COUNT; i++) {
-        g_game_state.enemies[i].render(&g_shader_program);
+        if (g_game_state.enemies[i].is_active()) {
+            g_game_state.enemies[i].render(&g_shader_program);
+        }
     }
 
+
     SDL_GL_SwapWindow(g_display_window);
+
 }
 
 void shutdown()

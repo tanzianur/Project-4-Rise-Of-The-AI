@@ -36,23 +36,21 @@ void Entity::ai_activate(Entity *player)
 
 void Entity::ai_walk()
 {
-    if (m_movement.x < 0) { // Moving left
+    if (m_movement.x < 0) {
         m_movement = glm::vec3(-0.5f, 0.0f, 0.0f);
-        m_animation_indices = m_walking[0]; // set entity texture to left-facing animation frames
+        m_animation_indices = m_walking[0]; 
     }
     else { // Moving right
         m_movement = glm::vec3(0.5f, 0.0f, 0.0f);
-        m_animation_indices = m_walking[1]; // Set entity texture to right-facing animation frames
+        m_animation_indices = m_walking[1]; 
     }
-
-    // Flip direction if a collision (into a wall) is detected
     if (m_collided_left) {
-        m_movement.x = 0.5f;  // Flip to move right
-        m_animation_indices = m_walking[1]; // right-facing animation frames
+        m_movement.x = 0.5f; 
+        m_animation_indices = m_walking[1]; 
     }
     else if (m_collided_right) {
-        m_movement.x = -0.5f; // Flip to move left
-        m_animation_indices = m_walking[0]; // left-facing animation frames
+        m_movement.x = -0.5f; 
+        m_animation_indices = m_walking[0]; 
     }
 }
 
