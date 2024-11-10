@@ -80,9 +80,11 @@ void Entity::ai_guard(Entity *player)
 }
 
 void Entity::ai_jump() {
+    
     if (m_ai_state == JUMPING && m_collided_bottom) {
         m_is_jumping = true;
     }
+   
 }
 
 // Default constructor

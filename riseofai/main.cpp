@@ -44,6 +44,8 @@ struct GameState
 
     Mix_Music* bgm;
     Mix_Chunk* jump_sfx;
+
+    int enemies_killed = 0;
 };
 
 enum AppStatus { RUNNING, TERMINATED };
@@ -239,7 +241,7 @@ void initialise()
     }
 
     g_game_state.enemies[0].set_position(glm::vec3(0.0f, 1.0f, 0.0f));
-    g_game_state.enemies[0].set_ai_type(GUARD);
+    g_game_state.enemies[0].set_ai_type(JUMPER);
     g_game_state.enemies[0].set_ai_state(JUMPING);
     g_game_state.enemies[0].set_jumping_power(2.0f);
 
@@ -340,6 +342,20 @@ void update()
 
         for (int i = 0; i < ENEMY_COUNT; i++) {
             g_game_state.enemies[i].update(FIXED_TIMESTEP, g_game_state.enemies, NULL, 0, g_game_state.map);
+            if (g_game_state.enemies[i].get_ai_type() == WALKER) {
+                g_game_state.enemies[i].ai_walk();
+            }
+            if (g_game_state.enemies[i].get_ai_type() == JUMPER) {
+                g_game_state.enemies[i].ai_jump();
+            }
+            if (g_game_state.player->check_collision(&g_game_state.enemies[i])) {
+                if (g_game_state.player->get_position().y > g_game_state.enemies[i].get_position().y + g_game_state.enemies[i].get_height() / 2.0f) {
+                    g_game_state.enemies[i].deactivate();
+                    g_game_state.enemies_killed++;
+                }
+
+            }
+
         }
 
         delta_time -= FIXED_TIMESTEP;
