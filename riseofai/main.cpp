@@ -1,3 +1,13 @@
+/**
+* Author: Tanzia Nur
+* Assignment: Rise of the AI
+* Date due: 2024-11-9, 11:59pm
+* I pledge that I have completed this assignment without
+* collaborating with anyone else, in conformance with the
+* NYU School of Engineering Policies and Procedures on
+* Academic Misconduct.
+**/
+
 #define GL_SILENCE_DEPRECATION
 #define STB_IMAGE_IMPLEMENTATION
 #define LOG(argument) std::cout << argument << '\n'
@@ -61,7 +71,7 @@ constexpr float MILLISECONDS_IN_SECOND = 1000.0;
 
 constexpr char SPRITESHEET_FILEPATH[] = "assets/images/player1.png",
 MAP_TILESET_FILEPATH[] = "assets/images/world_tileset.png",
-ENEMY1_FILEPATH[] = "assets/images/goblin.png",
+ENEMY1_FILEPATH[] = "assets/images/enemy.png",
 BGM_FILEPATH[] = "assets/audio/dooblydoo.mp3",
 JUMP_SFX_FILEPATH[] = "assets/audio/bounce.wav";
 
@@ -207,21 +217,43 @@ void initialise()
         { 0, 1, 2, 3 }   // downwards
     };
 
-    g_game_state.enemies = new Entity(
-        enemy1_texture_id,         // texture id
-        5.0f,                      // speed
-        acceleration,              // acceleration
-        3.0f,                      // jumping power
-        enemy1_walking_animation,  // animation index sets
-        0.0f,                      // animation time
-        4,                         // animation frame amount
-        0,                         // current animation index
-        4,                         // animation column amount
-        4,                         // animation row amount
-        0.9f,                      // width
-        0.9f,                       // height
-        PLAYER
-    );
+    g_game_state.enemies = new Entity[ENEMY_COUNT];
+
+    for (int i = 0; i < ENEMY_COUNT; ++i) {
+        g_game_state.enemies[i] = Entity(
+            enemy1_texture_id,         // texture id
+            5.0f,                      // speed
+            acceleration,              // acceleration
+            3.0f,                      // jumping power
+            enemy1_walking_animation,  // animation index sets
+            0.0f,                      // animation time
+            4,                         // animation frame amount
+            0,                         // current animation index
+            4,                         // animation column amount
+            4,                         // animation row amount
+            0.9f,                      // width
+            0.9f,                      // height
+            ENEMY
+
+        );
+    }
+
+    g_game_state.enemies[0].set_position(glm::vec3(0.0f, 1.0f, 0.0f));
+    g_game_state.enemies[0].set_ai_type(GUARD);
+    g_game_state.enemies[0].set_ai_state(JUMPING);
+    g_game_state.enemies[0].set_jumping_power(2.0f);
+
+    //second enemy
+    g_game_state.enemies[1].set_position(glm::vec3(4.0f, 1.0f, 0.0f));
+    g_game_state.enemies[1].set_ai_type(JUMPER);
+    g_game_state.enemies[1].set_ai_state(JUMPING);
+    g_game_state.enemies[1].set_jumping_power(2.0f);
+
+    //third enemy
+    g_game_state.enemies[2].set_position(glm::vec3(0.0f, -3.0f, 0.0f));
+    g_game_state.enemies[2].set_ai_type(WALKER);
+    g_game_state.enemies[2].set_ai_state(WALKING);
+    g_game_state.enemies[2].set_jumping_power(2.0f);
 
 
     // Jumping
@@ -304,8 +336,7 @@ void update()
 
     while (delta_time >= FIXED_TIMESTEP)
     {
-        g_game_state.player->update(FIXED_TIMESTEP, g_game_state.player, NULL, 0,
-            g_game_state.map);
+        g_game_state.player->update(FIXED_TIMESTEP, g_game_state.player, NULL, 0, g_game_state.map);
 
         for (int i = 0; i < ENEMY_COUNT; i++) {
             g_game_state.enemies[i].update(FIXED_TIMESTEP, g_game_state.enemies, NULL, 0, g_game_state.map);

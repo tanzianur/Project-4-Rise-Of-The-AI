@@ -24,6 +24,10 @@ void Entity::ai_activate(Entity *player)
         case GUARD:
             ai_guard(player);
             break;
+
+        case JUMPER:
+            ai_jump();
+            break;
             
         default:
             break;
@@ -32,7 +36,24 @@ void Entity::ai_activate(Entity *player)
 
 void Entity::ai_walk()
 {
-    m_movement = glm::vec3(-1.0f, 0.0f, 0.0f);
+    if (m_movement.x < 0) { // Moving left
+        m_movement = glm::vec3(-0.5f, 0.0f, 0.0f);
+        m_animation_indices = m_walking[0]; // set entity texture to left-facing animation frames
+    }
+    else { // Moving right
+        m_movement = glm::vec3(0.5f, 0.0f, 0.0f);
+        m_animation_indices = m_walking[1]; // Set entity texture to right-facing animation frames
+    }
+
+    // Flip direction if a collision (into a wall) is detected
+    if (m_collided_left) {
+        m_movement.x = 0.5f;  // Flip to move right
+        m_animation_indices = m_walking[1]; // right-facing animation frames
+    }
+    else if (m_collided_right) {
+        m_movement.x = -0.5f; // Flip to move left
+        m_animation_indices = m_walking[0]; // left-facing animation frames
+    }
 }
 
 void Entity::ai_guard(Entity *player)
@@ -57,6 +78,13 @@ void Entity::ai_guard(Entity *player)
             break;
     }
 }
+
+void Entity::ai_jump() {
+    if (m_ai_state == JUMPING && m_collided_bottom) {
+        m_is_jumping = true;
+    }
+}
+
 // Default constructor
 Entity::Entity()
     : m_position(0.0f), m_movement(0.0f), m_scale(1.0f, 1.0f, 0.0f), m_model_matrix(1.0f),
