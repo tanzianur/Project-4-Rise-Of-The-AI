@@ -78,7 +78,8 @@ void Entity::ai_guard(Entity *player)
 }
 
 void Entity::ai_jump() {
-    
+    m_animation_indices = m_walking[3];
+
     if (m_ai_state == JUMPING && m_collided_bottom) {
         m_is_jumping = true;
     }

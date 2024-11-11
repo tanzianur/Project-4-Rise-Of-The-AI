@@ -14,8 +14,8 @@
 #define GL_GLEXT_PROTOTYPES 1
 #define FIXED_TIMESTEP 0.0166666f
 #define ENEMY_COUNT 3
-#define LEVEL1_WIDTH 18
-#define LEVEL1_HEIGHT 8
+#define LEVEL1_WIDTH 25
+#define LEVEL1_HEIGHT 9
 
 #ifdef _WINDOWS
 #include <GL/glew.h>
@@ -46,6 +46,7 @@ struct GameState
     Mix_Chunk* jump_sfx;
 
     int enemies_killed = 0;
+    bool win = false;
 };
 
 enum AppStatus { RUNNING, TERMINATED, PAUSED };
@@ -85,14 +86,15 @@ constexpr GLint TEXTURE_BORDER = 0;
 constexpr int FONTBANK_SIZE = 16;
 unsigned int LEVEL_1_DATA[] =
 {
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 10, 10, 10, 10, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 9, 10, 11, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 2, 2, 2, 2, 0, 0, 0, 0,
-    2, 2, 2, 2, 0, 0, 0, 0, 3, 3, 3, 3, 0, 0, 0, 0, 0, 0,
-    3, 3, 3, 3, 0, 0, 0, 3, 3, 3, 3, 0, 0, 0, 0, 0, 0, 1,
-    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 10, 10, 10, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 9, 10, 11, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 2, 2, 2, 2, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    2, 2, 0, 0, 0, 0, 0, 0, 2, 3, 3, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    3, 3, 3, 3, 0, 0, 0, 2, 3, 3, 3, 0, 0, 0, 0, 0, 0, 0, 3, 3, 0, 0, 0, 0, 0,
+    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1
 };
 
 // ————— VARIABLES ————— //
@@ -183,6 +185,27 @@ void draw_text(ShaderProgram* shader_program, GLuint font_texture_id, std::strin
             u_coordinate, v_coordinate + height,
             });
     }
+    // 4. And render all of them using the pairs
+    glm::mat4 model_matrix = glm::mat4(1.0f);
+    model_matrix = glm::translate(model_matrix, position);
+
+    shader_program->set_model_matrix(model_matrix);
+    glUseProgram(shader_program->get_program_id());
+
+    glVertexAttribPointer(shader_program->get_position_attribute(), 2, GL_FLOAT, false, 0,
+        vertices.data());
+    glEnableVertexAttribArray(shader_program->get_position_attribute());
+
+    glVertexAttribPointer(shader_program->get_tex_coordinate_attribute(), 2, GL_FLOAT,
+        false, 0, texture_coordinates.data());
+    glEnableVertexAttribArray(shader_program->get_tex_coordinate_attribute());
+
+    glBindTexture(GL_TEXTURE_2D, font_texture_id);
+    glDrawArrays(GL_TRIANGLES, 0, (int)(text.size() * 6));
+
+    glDisableVertexAttribArray(shader_program->get_position_attribute());
+    glDisableVertexAttribArray(shader_program->get_tex_coordinate_attribute());
+
 }
 
 
@@ -289,16 +312,16 @@ void initialise()
         );
     }
 
-    g_game_state.enemies[0].set_position(glm::vec3(0.0f, 1.0f, 0.0f));
+    g_game_state.enemies[0].set_position(glm::vec3(12.0f, 1.0f, 0.0f));
     g_game_state.enemies[0].set_ai_type(JUMPER);
     g_game_state.enemies[0].set_ai_state(JUMPING);
-    g_game_state.enemies[0].set_jumping_power(2.0f);
+    g_game_state.enemies[0].set_jumping_power(1.2f);
 
     //second enemy
     g_game_state.enemies[1].set_position(glm::vec3(5.0f, 1.0f, 0.0f));
     g_game_state.enemies[1].set_ai_type(JUMPER);
     g_game_state.enemies[1].set_ai_state(JUMPING);
-    g_game_state.enemies[1].set_jumping_power(2.0f);
+    g_game_state.enemies[1].set_jumping_power(1.2);
 
     //third enemy
     g_game_state.enemies[2].set_position(glm::vec3(0.0f, -3.0f, 0.0f));
@@ -306,6 +329,10 @@ void initialise()
     g_game_state.enemies[2].set_ai_state(WALKING);
     g_game_state.enemies[2].set_jumping_power(2.0f);
 
+
+    g_game_state.player->activate();
+    g_game_state.enemies_killed = 0;
+    g_game_state.win = false;
 
     // Jumping
     g_game_state.player->set_jumping_power(4.0f);
@@ -371,6 +398,7 @@ void process_input()
         g_game_state.player->normalise_movement();
 }
 
+
 void update()
 {
     float ticks = (float)SDL_GetTicks() / MILLISECONDS_IN_SECOND;
@@ -397,15 +425,32 @@ void update()
             if (g_game_state.enemies[i].get_ai_type() == JUMPER) {
                 g_game_state.enemies[i].ai_jump();
             }
+
+            // To defeat an enemy, jump on their head
+            
             if (g_game_state.player->check_collision(&g_game_state.enemies[i])) {
-                if (g_game_state.player->get_position().y > g_game_state.enemies[i].get_position().y + g_game_state.enemies[i].get_height() / 2.0f) {
+                float player_top = g_game_state.player->get_position().y;
+                float enemy_top = g_game_state.enemies[i].get_position().y;
+                float enemy_height = g_game_state.enemies[i].get_height();
+
+                if (player_top > enemy_top + enemy_height / 2.0f) {
                     g_game_state.enemies[i].deactivate();
                     g_game_state.enemies_killed++;
+                if (g_game_state.enemies_killed == ENEMY_COUNT) {
+                    g_game_state.win = true;
+                    //g_game_state.player->deactivate();
+                    g_app_status = PAUSED;
+                    }
                 }
-                
+                else {
+                    //g_game_state.player->deactivate();
+                    g_game_state.win = false;
+                }
+
             }
 
         }
+
 
         delta_time -= FIXED_TIMESTEP;
     }
@@ -419,6 +464,7 @@ void update()
     g_view_matrix = glm::translate(g_view_matrix, glm::vec3(-g_game_state.player->get_position().x  * .01f, -g_game_state.player->get_position().y, 0.0f));
 
 }
+   
 
 void render()
 {
@@ -434,6 +480,17 @@ void render()
         }
     }
 
+    
+    if (g_app_status == PAUSED) {
+        if (g_game_state.enemies_killed == ENEMY_COUNT) {
+            draw_text(&g_shader_program, g_font_texture_id, "You Win!", 0.5f, 0.05f, g_game_state.player->get_position() + glm::vec3(-1.5f, 1.5f, 0.0f));
+        }
+        else {
+            draw_text(&g_shader_program, g_font_texture_id, "You Lose!", 0.5f, 0.05f, g_game_state.player->get_position() + glm::vec3(-1.5f, 1.5f, 0.0f));
+        }
+    }
+    
+    
 
     SDL_GL_SwapWindow(g_display_window);
 

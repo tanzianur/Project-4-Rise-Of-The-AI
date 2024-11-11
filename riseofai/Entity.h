@@ -117,6 +117,7 @@ public:
     bool      const get_collided_right() const { return m_collided_right; }
     bool      const get_collided_left() const { return m_collided_left; }
     float const get_height() const { return m_height; }
+    float const get_width() const { return m_width; }
     bool is_active() const { return m_is_active; }
     void activate()   { m_is_active = true;  };
     void deactivate() { m_is_active = false; };
