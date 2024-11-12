@@ -54,6 +54,7 @@ void Entity::ai_walk()
     }
 }
 
+
 void Entity::ai_guard(Entity *player)
 {
     switch (m_ai_state) {
@@ -64,8 +65,10 @@ void Entity::ai_guard(Entity *player)
         case WALKING:
             if (m_position.x > player->get_position().x) {
                 m_movement = glm::vec3(-1.0f, 0.0f, 0.0f);
+                m_animation_indices = m_walking[0];
             } else {
                 m_movement = glm::vec3(1.0f, 0.0f, 0.0f);
+                m_animation_indices = m_walking[1];
             }
             break;
             

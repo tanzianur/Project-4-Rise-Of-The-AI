@@ -75,13 +75,17 @@ constexpr float MILLISECONDS_IN_SECOND = 1000.0;
 constexpr char SPRITESHEET_FILEPATH[] = "assets/images/player1.png",
 MAP_TILESET_FILEPATH[] = "assets/images/world_tileset.png",
 ENEMY1_FILEPATH[] = "assets/images/enemy.png",
-BGM_FILEPATH[] = "assets/audio/dooblydoo.mp3",
-JUMP_SFX_FILEPATH[] = "assets/audio/bounce.wav",
+BGM_FILEPATH[] = "assets/audio/bg_music.mp3",
+JUMP_SFX_FILEPATH[] = "assets/audio/jump.wav",
 FONTSHEET_FILEPATH[] = "assets/fonts/font1.png";
 
 constexpr int NUMBER_OF_TEXTURES = 1;
 constexpr GLint LEVEL_OF_DETAIL = 0;
 constexpr GLint TEXTURE_BORDER = 0;
+
+constexpr int CD_QUAL_FREQ    = 44100,
+          AUDIO_CHAN_AMT  = 2,
+          AUDIO_BUFF_SIZE = 4096;
 
 constexpr int FONTBANK_SIZE = 16;
 unsigned int LEVEL_1_DATA[] =
@@ -337,13 +341,14 @@ void initialise()
     // Jumping
     g_game_state.player->set_jumping_power(4.0f);
 
-    Mix_OpenAudio(44100, MIX_DEFAULT_FORMAT, 2, 4096);
+    Mix_OpenAudio(CD_QUAL_FREQ, MIX_DEFAULT_FORMAT, AUDIO_CHAN_AMT, AUDIO_BUFF_SIZE);
 
     g_game_state.bgm = Mix_LoadMUS(BGM_FILEPATH);
     Mix_PlayMusic(g_game_state.bgm, -1);
-    Mix_VolumeMusic(MIX_MAX_VOLUME / 16.0f);
+    Mix_VolumeMusic(MIX_MAX_VOLUME / 2.0f);
 
     g_game_state.jump_sfx = Mix_LoadWAV(JUMP_SFX_FILEPATH);
+    Mix_VolumeChunk(g_game_state.jump_sfx, MIX_MAX_VOLUME / 4);
 
     // ————— BLENDING ————— //
     glEnable(GL_BLEND);
@@ -425,32 +430,35 @@ void update()
             if (g_game_state.enemies[i].get_ai_type() == JUMPER) {
                 g_game_state.enemies[i].ai_jump();
             }
+            if (g_game_state.enemies[i].get_ai_type() == GUARD) {
+                g_game_state.enemies[i].ai_guard(g_game_state.player);
+            }
 
             // To defeat an enemy, jump on their head
             
+            /**/
             if (g_game_state.player->check_collision(&g_game_state.enemies[i])) {
                 float player_top = g_game_state.player->get_position().y;
                 float enemy_top = g_game_state.enemies[i].get_position().y;
                 float enemy_height = g_game_state.enemies[i].get_height();
 
                 if (player_top > enemy_top + enemy_height / 2.0f) {
-                    g_game_state.enemies[i].deactivate();
                     g_game_state.enemies_killed++;
-                if (g_game_state.enemies_killed == ENEMY_COUNT) {
-                    g_game_state.win = true;
-                    //g_game_state.player->deactivate();
-                    g_app_status = PAUSED;
-                    }
+                    g_game_state.enemies[i].deactivate();
                 }
                 else {
-                    //g_game_state.player->deactivate();
+                    g_game_state.player->deactivate();
                     g_game_state.win = false;
+                    g_app_status = PAUSED;
                 }
 
             }
-
+            if (g_game_state.enemies_killed == ENEMY_COUNT) {
+                g_game_state.win = true;
+                //g_game_state.player->deactivate();
+                g_app_status = PAUSED;
+            }
         }
-
 
         delta_time -= FIXED_TIMESTEP;
     }
@@ -485,7 +493,7 @@ void render()
         if (g_game_state.enemies_killed == ENEMY_COUNT) {
             draw_text(&g_shader_program, g_font_texture_id, "You Win!", 0.5f, 0.05f, g_game_state.player->get_position() + glm::vec3(-1.5f, 1.5f, 0.0f));
         }
-        else {
+        else if (g_game_state.player->is_active() == false){
             draw_text(&g_shader_program, g_font_texture_id, "You Lose!", 0.5f, 0.05f, g_game_state.player->get_position() + glm::vec3(-1.5f, 1.5f, 0.0f));
         }
     }

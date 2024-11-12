@@ -32,7 +32,8 @@ private:
     glm::mat4 m_model_matrix;
 
     float     m_speed,
-              m_jumping_power;
+              m_jumping_power,
+              m_theta;
     
     bool m_is_jumping;
 
